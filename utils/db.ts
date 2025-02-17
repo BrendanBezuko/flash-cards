@@ -39,6 +39,54 @@ export const getFlashcards = async (db: IDBPDatabase) => {
   return await db.getAll("flashcards");
 };
 
+const scaleImage = async (
+  blob: Blob,
+  targetSize: number = 300
+): Promise<Blob> => {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      let width = img.width;
+      let height = img.height;
+
+      // Calculate new dimensions maintaining aspect ratio
+      if (width > height) {
+        if (width > targetSize) {
+          height = (height * targetSize) / width;
+          width = targetSize;
+        }
+      } else {
+        if (height > targetSize) {
+          width = (width * targetSize) / height;
+          height = targetSize;
+        }
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        reject(new Error("Failed to get canvas context"));
+        return;
+      }
+
+      ctx.drawImage(img, 0, 0, width, height);
+      canvas.toBlob((scaledBlob) => {
+        if (scaledBlob) {
+          resolve(scaledBlob);
+        } else {
+          reject(new Error("Failed to create blob from canvas"));
+        }
+      }, blob.type);
+    };
+
+    img.onerror = () => reject(new Error("Failed to load image"));
+    img.src = URL.createObjectURL(blob);
+  });
+};
+
 // Function to store an image in the images object store
 export const storeImage = async (
   db: IDBPDatabase,
@@ -55,12 +103,14 @@ export const storeImage = async (
   }
 
   try {
+    const scaledBlob = await scaleImage(imageBlob);
+
     const transaction = db.transaction("images", "readwrite");
     const store = transaction.objectStore("images");
 
     // Create a more complete image data object
     const imageData = {
-      blob: imageBlob,
+      blob: scaledBlob,
       timestamp: new Date().getTime(),
       size: imageBlob.size,
       type: imageBlob.type,
