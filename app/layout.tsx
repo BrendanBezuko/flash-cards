@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
+import Link from "next/link";
+import "./index.css";
+import { Home, Plus, CheckCircle } from "lucide-react";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -27,6 +29,28 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
+        <nav className="bg-gray-800 p-4">
+          <ul className="flex space-x-6 items-center">
+            <li>
+              <Link href="/" className="text-white hover:text-gray-300">
+                <Home className="inline mr-3" />
+                Home
+              </Link>
+            </li>
+            <li>
+              <Link href="/Add" className="text-white hover:text-gray-300">
+                <Plus className="inline mr-3" />
+                Add Flashcard
+              </Link>
+            </li>
+            <li>
+              <Link href="/Test" className="text-white hover:text-gray-300">
+                <CheckCircle className="inline mr-3" />
+                Test Flashcards
+              </Link>
+            </li>
+          </ul>
+        </nav>
         {children}
       </body>
     </html>
