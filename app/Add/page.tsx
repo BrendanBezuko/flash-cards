@@ -40,7 +40,7 @@ export default function Add() {
         qImage: qImage ? qImageID : null,
         aImage: aImage ? aImageID : null,
       };
-      await addFlashcard(db, newFlashcard);
+      await addFlashcard(db, newFlashcard, 1);
       setQuestion(""); // Clear the input after submission
       setAnswer(""); // Clear the input after submission
       setQImage(null);

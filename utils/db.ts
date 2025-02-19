@@ -3,6 +3,12 @@ import { openDB } from "idb";
 import { IDBPDatabase } from "idb";
 import { Flashcard } from "@/types/flash-card";
 
+/* 
+flashcardsStore
+- image IDBValidKey -> imagesStore
+- deckID -> deck
+*/
+
 export const initDB = async () => {
   try {
     const db = await openDB("flashcardDB", 1, {
@@ -11,6 +17,15 @@ export const initDB = async () => {
           keyPath: "id",
           autoIncrement: true,
         });
+
+        // Add a new object store for decks
+        const decksStore = db.createObjectStore("decks", {
+          keyPath: "id",
+          autoIncrement: true,
+        });
+
+        // Add an index to the flashcards store for deckId
+        flashcardsStore.createIndex("deckId", "deckId", { unique: false });
 
         const imagesStore = db.createObjectStore("images", {
           keyPath: "id",
@@ -24,11 +39,27 @@ export const initDB = async () => {
   }
 };
 
-export const addFlashcard = async (db: IDBPDatabase, flashcard: Flashcard) => {
+export const addFlashcard = async (
+  db: IDBPDatabase,
+  flashcard: Flashcard,
+  deckId: number
+) => {
   if (!db) {
     console.log("Database is not initialized.");
   }
-  await db.add("flashcards", flashcard);
+  const flashcardWithDeck = { ...flashcard, deckId };
+  await db.add("flashcards", flashcardWithDeck);
+};
+
+export const getFlashcardsByDeck = async (db: IDBPDatabase, deckId: number) => {
+  if (!db) {
+    console.log("Database is not initialized.");
+    return [];
+  }
+  const transaction = db.transaction("flashcards", "readonly");
+  const store = transaction.objectStore("flashcards");
+  const index = store.index("deckId");
+  return await index.getAll(deckId);
 };
 
 export const getFlashcards = async (db: IDBPDatabase) => {
@@ -37,6 +68,106 @@ export const getFlashcards = async (db: IDBPDatabase) => {
     return []; // Return an empty array if db is null
   }
   return await db.getAll("flashcards");
+};
+
+export const deleteFlashcard = async (
+  db: IDBPDatabase,
+  flashcardId: number
+) => {
+  if (!db) {
+    console.log("Database is not initialized.");
+    return;
+  }
+
+  const transaction = db.transaction(["flashcards", "images"], "readwrite");
+
+  // Get the flashcard to check for associated images
+  const flashcardsStore = transaction.objectStore("flashcards");
+  const flashcard = await flashcardsStore.get(flashcardId);
+
+  if (flashcard) {
+    // Delete the flashcard
+    await flashcardsStore.delete(flashcardId);
+
+    // If the flashcard has associated images, delete them
+    const imagesStore = transaction.objectStore("images");
+    if (flashcard.qImage) {
+      await imagesStore.delete(flashcard.qImage);
+    }
+    if (flashcard.aImage) {
+      await imagesStore.delete(flashcard.aImage);
+    }
+  }
+
+  // Wait for the transaction to complete
+  await new Promise<void>((resolve, reject) => {
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error);
+  });
+};
+
+export const listAllDecks = async (db: IDBPDatabase) => {
+  if (!db) {
+    console.log("Database is not initialized.");
+    return [];
+  }
+  return await db.getAll("decks");
+};
+
+export const createDeck = async (
+  db: IDBPDatabase,
+  deckName: string
+): Promise<IDBValidKey | undefined> => {
+  if (!db) {
+    console.log("Database is not initialized.");
+    return;
+  }
+  const transaction = db.transaction("decks", "readwrite");
+  const store = transaction.objectStore("decks");
+  const deck = { name: deckName, created: new Date().getTime() };
+  return await store.add(deck);
+};
+
+export const deleteDeck = async (db: IDBPDatabase, deckId: number) => {
+  if (!db) {
+    console.log("Database is not initialized.");
+    return;
+  }
+
+  // Start a transaction for decks, flashcards, and images
+  const transaction = db.transaction(
+    ["decks", "flashcards", "images"],
+    "readwrite"
+  );
+
+  // Delete all flashcards associated with the deck
+  const flashcardsStore = transaction.objectStore("flashcards");
+  const flashcardsIndex = flashcardsStore.index("deckId");
+  const flashcards = await flashcardsIndex.getAll(deckId);
+  const imagesStore = transaction.objectStore("images");
+
+  for (const flashcard of flashcards) {
+    // Delete each flashcard
+    await flashcardsStore.delete(flashcard.id);
+
+    // Delete associated images
+    if (flashcard.qImage) {
+      await imagesStore.delete(flashcard.qImage);
+    }
+    if (flashcard.aImage) {
+      await imagesStore.delete(flashcard.aImage);
+    }
+  }
+
+  // Delete the deck itself
+  const decksStore = transaction.objectStore("decks");
+  await decksStore.delete(deckId);
+
+  // Wait for the transaction to complete
+  await new Promise<void>((resolve, reject) => {
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error);
+  });
 };
 
 const scaleImage = async (
@@ -87,7 +218,6 @@ const scaleImage = async (
   });
 };
 
-// Function to store an image in the images object store
 export const storeImage = async (
   db: IDBPDatabase,
   imageBlob: Blob
@@ -145,6 +275,23 @@ export const getImage = async (
     console.error("Error getting image:", error);
     return null;
   }
+};
+
+export const deleteImage = async (db: IDBPDatabase, imageId: number) => {
+  if (!db) {
+    console.log("Database is not initialized.");
+    return;
+  }
+
+  const transaction = db.transaction("images", "readwrite");
+  const store = transaction.objectStore("images");
+  await store.delete(imageId);
+
+  // Wait for the transaction to complete
+  await new Promise<void>((resolve, reject) => {
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error);
+  });
 };
 
 export const listAllImages = async (db: IDBPDatabase) => {

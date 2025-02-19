@@ -14,7 +14,7 @@ A simple flash card application that runs locally without a backend using indexe
 ## Nice to have features:
 
 - Better image handling - Right now I'm just down scaling the images and storing as blobs, it would be better to have some compression.
-- Analytics. Using chartJS it would be nice to add some analytics and stats to keep track of your progress with different decks
+- Analytics. Using chartJS it would be nice to add some analytics and stats to keep track of your progress with different decks.
 
 ## Getting Started
 

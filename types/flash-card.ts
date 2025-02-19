@@ -1,5 +1,3 @@
-import { IDBPIndex } from "idb";
-
 export interface Flashcard {
   id: number;
   question: string;
