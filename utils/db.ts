@@ -2,12 +2,8 @@
 import { openDB } from "idb";
 import { IDBPDatabase } from "idb";
 import { Flashcard } from "@/types/flash-card";
-
-/* 
-flashcardsStore
-- image IDBValidKey -> imagesStore
-- deckID -> deck
-*/
+import { v4 as uuidv4 } from "uuid";
+import { TestResult } from "@/types/result";
 
 export const initDB = async () => {
   try {
@@ -18,14 +14,23 @@ export const initDB = async () => {
           autoIncrement: true,
         });
 
+        // Add an index to the flashcards store for deckId
+        flashcardsStore.createIndex("deckId", "deckId", { unique: false });
+
         // Add a new object store for decks
         const decksStore = db.createObjectStore("decks", {
           keyPath: "id",
           autoIncrement: true,
         });
 
-        // Add an index to the flashcards store for deckId
-        flashcardsStore.createIndex("deckId", "deckId", { unique: false });
+        const resultsStore = db.createObjectStore("results", {
+          keyPath: "id",
+          autoIncrement: true,
+        });
+
+        // Define the structure of the results store
+        resultsStore.createIndex("deckId", "deckId", { unique: false });
+        resultsStore.createIndex("date", "date", { unique: false });
 
         const imagesStore = db.createObjectStore("images", {
           keyPath: "id",
@@ -46,8 +51,9 @@ export const addFlashcard = async (
 ) => {
   if (!db) {
     console.log("Database is not initialized.");
+    return;
   }
-  const flashcardWithDeck = { ...flashcard, deckId };
+  const flashcardWithDeck = { ...flashcard, id: uuidv4(), deckId };
   await db.add("flashcards", flashcardWithDeck);
 };
 
@@ -306,4 +312,57 @@ export const listAllImages = async (db: IDBPDatabase) => {
     size: img.size,
     type: img.type,
   }));
+};
+
+export const createResult = async (
+  db: IDBPDatabase,
+  result: TestResult
+): Promise<IDBValidKey | undefined> => {
+  if (!db) {
+    console.log("Database is not initialized.");
+    return;
+  }
+  const transaction = db.transaction("results", "readwrite");
+  const store = transaction.objectStore("results");
+  return await store.add(result);
+};
+
+// Function to delete a test result by ID
+export const deleteResult = async (db: IDBPDatabase, resultId: number) => {
+  if (!db) {
+    console.log("Database is not initialized.");
+    return;
+  }
+  const transaction = db.transaction("results", "readwrite");
+  const store = transaction.objectStore("results");
+  await store.delete(resultId);
+
+  // Wait for the transaction to complete
+  await new Promise<void>((resolve, reject) => {
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error);
+  });
+};
+
+// Function to get a single test result by ID
+export const getResult = async (
+  db: IDBPDatabase,
+  resultId: number
+): Promise<TestResult | null> => {
+  if (!db) {
+    console.log("Database is not initialized.");
+    return null;
+  }
+  const result = await db.get("results", resultId);
+  return result ?? null;
+};
+
+// Function to get all test results
+export const getResults = async (db: IDBPDatabase): Promise<TestResult[]> => {
+  if (!db) {
+    console.log("Database is not initialized.");
+    return [];
+  }
+  const results = await db.getAll("results");
+  return results ?? null;
 };

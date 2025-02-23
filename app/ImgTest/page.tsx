@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { initDB, storeImage, getImage, listAllImages } from "@/utils/db";
 import { IDBPDatabase } from "idb";
+import Image from "next/image";
 
 export default function TestDB() {
   const [db, setDb] = useState<IDBPDatabase | null>(null);
@@ -90,7 +91,7 @@ export default function TestDB() {
       {selectedImage && (
         <div className="mt-4">
           <h2 className="text-xl font-semibold mb-2">Preview:</h2>
-          <img
+          <Image
             src={selectedImage}
             alt="Preview"
             className="max-w-md border"
@@ -98,6 +99,8 @@ export default function TestDB() {
               // Clean up the object URL after the image loads
               URL.revokeObjectURL(selectedImage);
             }}
+            width={300}
+            height={300}
           />
         </div>
       )}

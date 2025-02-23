@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { Flashcard } from "@/types/flash-card";
 import { getFlashcards, initDB, getImage } from "@/utils/db";
+import Image from "next/image";
+import { Button } from "@/components/ui/button";
 
 export default function Test() {
   const [flashcards, setFlashcards] = useState<Flashcard[]>([]);
@@ -12,7 +14,7 @@ export default function Test() {
   const [score, setScore] = useState<number>(0);
   const [wrongQuestions, setWrongQuestions] = useState<number[]>([]);
   const [isQuizStarted, setIsQuizStarted] = useState<boolean>(false);
-  const [db, setDb] = useState<any>(null);
+  //const [db, setDb] = useState<any>(null);
   const [isQuizEnded, setIsQuizEnded] = useState(false);
   const [shuffle, setShuffle] = useState(false);
   const [pedantic, setPedantic] = useState(false); // pedantic or typed responses mode
@@ -24,7 +26,7 @@ export default function Test() {
   useEffect(() => {
     const setupDB = async () => {
       const database = await initDB();
-      setDb(database);
+      //setDb(database);
       if (database) {
         const cards = await getFlashcards(database);
         setFlashcards(cards);
@@ -76,11 +78,11 @@ export default function Test() {
     }
   };
 
-  const handleShowAnswer = () => {
-    if (!showAnswer) {
-      setShowAnswer(true);
-    }
-  };
+  // const handleShowAnswer = () => {
+  //   if (!showAnswer) {
+  //     setShowAnswer(true);
+  //   }
+  // };
 
   const shuffleArray = (array: Flashcard[]) => {
     for (let i = array.length - 1; i > 0; i--) {
@@ -139,29 +141,29 @@ export default function Test() {
           <p className="text-xl mb-4">
             Your Score: {score} / {deckSize}
           </p>
-          <button
+          <Button
             onClick={handleStartQuiz}
             className="bg-blue-500 text-white p-3 rounded hover:bg-blue-600 transition"
           >
             Restart Quiz
-          </button>
+          </Button>
           <div className="flex flex-row gap-4 ">
-            <button
+            <Button
               onClick={() => setShuffle((prev) => !prev)}
               className={`p-2 rounded ${
                 shuffle ? "bg-green-500 text-white" : "bg-green-200 text-white"
               }`}
             >
               Shuffle {shuffle && "✅"}
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={() => setPedantic((prev) => !prev)}
               className={`p-2 rounded ${
                 pedantic ? "bg-green-500 text-white" : "bg-green-200 text-white"
               }`}
             >
               Typed {pedantic && "✅"}
-            </button>
+            </Button>
           </div>
         </div>
         <div className="flex flex-col items-center justify-center mt-8">
@@ -204,10 +206,12 @@ export default function Test() {
             </h2>
             {currentFlashcard.qImage &&
               images[currentFlashcard.id] instanceof Blob && (
-                <img
+                <Image
                   src={URL.createObjectURL(images[currentFlashcard.id] as Blob)}
                   alt={currentFlashcard.question}
                   className="mb-4 rounded"
+                  width={300}
+                  height={300}
                 />
               )}
 

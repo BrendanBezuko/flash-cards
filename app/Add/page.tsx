@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { initDB, addFlashcard, storeImage } from "@/utils/db";
 import { Flashcard } from "@/types/flash-card";
+import Image from "next/image";
 
 export default function Add() {
   const [question, setQuestion] = useState<string>("");
@@ -102,18 +103,22 @@ export default function Add() {
       <div className="bg-gray-100 shadow-lg rounded-lg p-6 text-center md:w-min-[500px] md:h-min-[500px] flex flex-col justify-center items-center my-12">
         <h2 className="text-2xl font-bold mb-2">{question}</h2>
         {qImage && (
-          <img
+          <Image
             src={URL.createObjectURL(qImage)}
             alt="Question Image"
-            className="mt-4 rounded max-w-[300px] max-h-[300px]"
+            className="mt-4"
+            width={300}
+            height={300}
           />
         )}
         <p className="text-xl">{answer}</p>
         {aImage && (
-          <img
+          <Image
             src={URL.createObjectURL(aImage)}
             alt="Answer Image"
-            className="mt-4 rounded max-w-[300px] max-h-[300px] object-cover"
+            className="mt-4 rounded"
+            width={300}
+            height={300}
           />
         )}
       </div>
