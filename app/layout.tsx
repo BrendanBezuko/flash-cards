@@ -45,7 +45,7 @@ export default function RootLayout({
               </Link>
             </li>
             <li>
-              <Link href="/Test" className="text-white hover:text-gray-300">
+              <Link href="/Quiz" className="text-white hover:text-gray-300">
                 <CheckCircle className="inline mr-3" />
                 Flashcards
               </Link>
