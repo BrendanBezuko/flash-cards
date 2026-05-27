@@ -120,6 +120,34 @@ export const listAllDecks = async (db: IDBPDatabase) => {
   return await db.getAll("decks");
 };
 
+export const getOrCreateDeck = async (
+  db: IDBPDatabase,
+  deckName: string
+): Promise<number> => {
+  if (!db) {
+    throw new Error("Database is not initialized.");
+  }
+
+  const trimmed = deckName.trim();
+  if (!trimmed) {
+    throw new Error("Deck name cannot be empty.");
+  }
+
+  const decks = await listAllDecks(db);
+  const existing = decks.find(
+    (deck) => deck.name.toLowerCase() === trimmed.toLowerCase()
+  );
+  if (existing) {
+    return existing.id as number;
+  }
+
+  const deckId = await createDeck(db, trimmed);
+  if (deckId === undefined) {
+    throw new Error("Failed to create deck.");
+  }
+  return deckId as number;
+};
+
 export const createDeck = async (
   db: IDBPDatabase,
   deckName: string

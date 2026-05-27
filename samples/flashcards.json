@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "deck": "Geography",
+  "flashcards": [
+    {
+      "question": "What is the capital of France?",
+      "answer": "Paris",
+      "isReverable": false
+    },
+    {
+      "question": "What is the capital of Japan?",
+      "answer": "Tokyo",
+      "isReverable": false
+    }
+  ]
+}

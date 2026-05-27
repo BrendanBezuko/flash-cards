@@ -2,9 +2,17 @@
 
 import { useEffect, useState } from "react";
 import { Flashcard } from "@/types/flash-card";
-import { getFlashcards, initDB, getImage } from "@/utils/db";
+import {
+  createDeck,
+  getFlashcardsByDeck,
+  getImage,
+  initDB,
+  listAllDecks,
+} from "@/utils/db";
+import { Deck } from "@/types/deck";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
+import { IDBPDatabase } from "idb";
 
 export default function Test() {
   const [flashcards, setFlashcards] = useState<Flashcard[]>([]);
@@ -22,30 +30,57 @@ export default function Test() {
     [key: number]: Blob | undefined | null;
   }>({});
   const [typedAnswer, setTypedAnswer] = useState<string>("");
+  const [decks, setDecks] = useState<Deck[]>([]);
+  const [selectedDeckId, setSelectedDeckId] = useState<number | null>(null);
+  const [db, setDb] = useState<IDBPDatabase | null>(null);
+
+  const loadDeckCards = async (
+    database: IDBPDatabase,
+    deckId: number
+  ) => {
+    const cards = await getFlashcardsByDeck(database, deckId);
+    setFlashcards(cards);
+    setDeckSize(cards.length);
+
+    const loadedImages: { [key: number]: Blob | null } = {};
+    for (const card of cards) {
+      if (card.qImage) {
+        const imageBlob = await getImage(database, card.qImage);
+        loadedImages[card.id] = imageBlob ?? null;
+      }
+    }
+    setImages(loadedImages);
+  };
 
   useEffect(() => {
     const setupDB = async () => {
       const database = await initDB();
-      //setDb(database);
-      if (database) {
-        const cards = await getFlashcards(database);
-        setFlashcards(cards);
-        setDeckSize(cards.length);
+      if (!database) return;
 
-        // Load images for each flashcard
-        const loadedImages: { [key: number]: Blob | null } = {};
-        for (const card of cards) {
-          if (card.qImage) {
-            const imageBlob = await getImage(database, card.qImage);
-            console.log(imageBlob);
-            loadedImages[card.id] = imageBlob ?? null;
-          }
-        }
-        setImages(loadedImages);
+      setDb(database);
+      let allDecks = await listAllDecks(database);
+      if (allDecks.length === 0) {
+        await createDeck(database, "Default");
+        allDecks = await listAllDecks(database);
+      }
+      setDecks(allDecks);
+      const initialDeckId = allDecks[0]?.id as number;
+      setSelectedDeckId(initialDeckId);
+      if (initialDeckId !== undefined) {
+        await loadDeckCards(database, initialDeckId);
       }
     };
     setupDB();
   }, []);
+
+  const handleDeckChange = async (deckId: number) => {
+    setSelectedDeckId(deckId);
+    setIsQuizStarted(false);
+    setIsQuizEnded(false);
+    if (db) {
+      await loadDeckCards(db, deckId);
+    }
+  };
 
   const handleStartQuiz = () => {
     const cardsToUse = shuffle
@@ -100,6 +135,23 @@ export default function Test() {
     return (
       <div className="flex flex-col gap-4 h-screen items-center justify-center">
         <h1 className="text-3xl font-bold mb-4">Flashcard Quiz</h1>
+        <div className="flex flex-col items-center gap-2">
+          <label htmlFor="quiz-deck-select" className="text-sm text-gray-600">
+            Deck
+          </label>
+          <select
+            id="quiz-deck-select"
+            value={selectedDeckId ?? ""}
+            onChange={(e) => handleDeckChange(Number(e.target.value))}
+            className="border border-gray-300 p-2 rounded min-w-[200px]"
+          >
+            {decks.map((deck) => (
+              <option key={deck.id} value={deck.id}>
+                {deck.name}
+              </option>
+            ))}
+          </select>
+        </div>
         <button
           onClick={handleStartQuiz}
           disabled={flashcards.length === 0}

@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "deck": "Science",
+  "flashcards": [
+    {
+      "question": "What does HTTP stand for?",
+      "answer": "HyperText Transfer Protocol",
+      "isReverable": false
+    },
+    {
+      "question": "What is H2O commonly called?",
+      "answer": "Water",
+      "isReverable": false
+    }
+  ]
+}
