@@ -17,8 +17,7 @@ export const initDB = async () => {
         // Add an index to the flashcards store for deckId
         flashcardsStore.createIndex("deckId", "deckId", { unique: false });
 
-        // Add a new object store for decks
-        const decksStore = db.createObjectStore("decks", {
+        db.createObjectStore("decks", {
           keyPath: "id",
           autoIncrement: true,
         });
@@ -32,7 +31,7 @@ export const initDB = async () => {
         resultsStore.createIndex("deckId", "deckId", { unique: false });
         resultsStore.createIndex("date", "date", { unique: false });
 
-        const imagesStore = db.createObjectStore("images", {
+        db.createObjectStore("images", {
           keyPath: "id",
           autoIncrement: true,
         });
@@ -392,5 +391,13 @@ export const getResults = async (db: IDBPDatabase): Promise<TestResult[]> => {
     return [];
   }
   const results = await db.getAll("results");
-  return results ?? null;
+  return results ?? [];
+};
+
+export const getResultsByDeck = async (
+  db: IDBPDatabase,
+  deckId: number
+): Promise<TestResult[]> => {
+  const results = await getResults(db);
+  return results.filter((r) => r.deckId === deckId);
 };

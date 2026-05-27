@@ -1,15 +1,21 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Flashcard } from "@/types/flash-card";
 import {
   createDeck,
+  createResult,
   getFlashcardsByDeck,
   getImage,
+  getResultsByDeck,
   initDB,
   listAllDecks,
 } from "@/utils/db";
 import { Deck } from "@/types/deck";
 import { Button } from "@/components/ui/button";
+import { QuizStatistics } from "@/components/quiz-statistics";
+import { FlashcardResult, TestResult } from "@/types/result";
 import { IDBPDatabase } from "idb";
+
+type CardStat = { tries: number; timeMs: number; correct: boolean };
 
 export default function Quiz() {
   const [flashcards, setFlashcards] = useState<Flashcard[]>([]);
@@ -29,6 +35,14 @@ export default function Quiz() {
   const [decks, setDecks] = useState<Deck[]>([]);
   const [selectedDeckId, setSelectedDeckId] = useState<number | null>(null);
   const [db, setDb] = useState<IDBPDatabase | null>(null);
+  const [perCardStats, setPerCardStats] = useState<Record<number, CardStat>>(
+    {}
+  );
+  const [sessionResults, setSessionResults] = useState<FlashcardResult[]>([]);
+  const [historicalResults, setHistoricalResults] = useState<TestResult[]>([]);
+  const [quizCardsSnapshot, setQuizCardsSnapshot] = useState<Flashcard[]>([]);
+  const initialCardIdsRef = useRef<number[]>([]);
+  const cardStartTimeRef = useRef(Date.now());
 
   const loadDeckCards = async (
     database: IDBPDatabase,
@@ -78,11 +92,54 @@ export default function Quiz() {
     }
   };
 
+  useEffect(() => {
+    if (isQuizStarted && !isQuizEnded) {
+      cardStartTimeRef.current = Date.now();
+    }
+  }, [currentIndex, isQuizStarted, isQuizEnded]);
+
+  const buildFlashcardResults = (
+    stats: Record<number, CardStat>
+  ): FlashcardResult[] =>
+    initialCardIdsRef.current.map((id) => ({
+      flashcardId: String(id),
+      correct: stats[id]?.correct ?? false,
+      tries: stats[id]?.tries ?? 0,
+      timeTaken: stats[id]?.timeMs ?? 0,
+    }));
+
+  const saveQuizResult = async (stats: Record<number, CardStat>) => {
+    if (!db || selectedDeckId === null) return;
+
+    const flashcardResults = buildFlashcardResults(stats);
+    setSessionResults(flashcardResults);
+
+    await createResult(db, {
+      deckId: selectedDeckId,
+      flashcardResults,
+      totalTimeTaken: flashcardResults.reduce((sum, r) => sum + r.timeTaken, 0),
+      date: new Date(),
+    });
+
+    const history = await getResultsByDeck(db, selectedDeckId);
+    setHistoricalResults(history);
+  };
+
   const handleStartQuiz = () => {
     const cardsToUse = shuffle
       ? shuffleArray([...flashcards])
       : orderById([...flashcards]);
-    setFlashcards(cardsToUse.slice(0, deckSize));
+    const deck = cardsToUse.slice(0, deckSize);
+    setQuizCardsSnapshot(deck);
+    initialCardIdsRef.current = deck.map((c) => c.id);
+    const stats: Record<number, CardStat> = {};
+    for (const id of initialCardIdsRef.current) {
+      stats[id] = { tries: 0, timeMs: 0, correct: false };
+    }
+    setPerCardStats(stats);
+    setSessionResults([]);
+    cardStartTimeRef.current = Date.now();
+    setFlashcards(deck);
     setIsQuizEnded(false);
     setIsQuizStarted(true);
     setScore(0);
@@ -91,6 +148,23 @@ export default function Quiz() {
   };
 
   const handleAnswerClick = (isCorrect: boolean) => {
+    const card = flashcards[currentIndex];
+    const elapsed = Date.now() - cardStartTimeRef.current;
+    const current = perCardStats[card.id] ?? {
+      tries: 0,
+      timeMs: 0,
+      correct: false,
+    };
+    const nextStats: Record<number, CardStat> = {
+      ...perCardStats,
+      [card.id]: {
+        tries: current.tries + 1,
+        timeMs: current.timeMs + elapsed,
+        correct: isCorrect || current.correct,
+      },
+    };
+    setPerCardStats(nextStats);
+
     if (!isCorrect) {
       if (currentIndex < deckSize) {
         setWrongQuestions((prev) => [...prev, currentIndex]);
@@ -101,8 +175,11 @@ export default function Quiz() {
     }
     setShowAnswer(false);
 
-    if (currentIndex + 1 >= flashcards.length && isCorrect) {
+    const quizComplete =
+      isCorrect && currentIndex + 1 >= flashcards.length;
+    if (quizComplete) {
       setIsQuizEnded(true);
+      void saveQuizResult(nextStats);
     } else {
       setCurrentIndex((prev) => prev + 1);
     }
@@ -175,20 +252,24 @@ export default function Quiz() {
   }
 
   if (isQuizEnded) {
+    const flashcardsById = new Map(
+      quizCardsSnapshot.map((card) => [card.id, card])
+    );
+
     return (
-      <>
-        <div className="flex flex-col gap-4 h-screen items-center justify-center">
-          <h1 className="text-3xl font-bold mb-4">Quiz Finished!</h1>
-          <p className="text-xl mb-4">
+      <div className="min-h-screen py-8">
+        <div className="flex flex-col gap-4 items-center">
+          <h1 className="text-3xl font-bold">Quiz Finished!</h1>
+          <p className="text-xl">
             Your Score: {score} / {deckSize}
           </p>
-          <Button
-            onClick={handleStartQuiz}
-            className="bg-blue-500 text-white p-3 rounded hover:bg-blue-600 transition"
-          >
-            Restart Quiz
-          </Button>
-          <div className="flex flex-row gap-4 ">
+          <div className="flex flex-row gap-4">
+            <Button
+              onClick={handleStartQuiz}
+              className="bg-blue-500 text-white p-3 rounded hover:bg-blue-600 transition"
+            >
+              Restart Quiz
+            </Button>
             <Button
               onClick={() => setShuffle((prev) => !prev)}
               className={`p-2 rounded ${
@@ -207,27 +288,40 @@ export default function Quiz() {
             </Button>
           </div>
         </div>
+
+        <QuizStatistics
+          flashcardResults={sessionResults}
+          flashcardsById={flashcardsById}
+          historicalResults={historicalResults}
+          score={score}
+          deckSize={deckSize}
+        />
+
         <div className="flex flex-col items-center justify-center mt-8">
           {wrongQuestions.length > 0 ? (
             <>
               <h2 className="text-2xl font-bold mb-4">Incorrect Answers</h2>
               <div className="carousel">
-                {wrongQuestions.map((index) => (
-                  <div
-                    key={index}
-                    className="carousel-item bg-gray-100 shadow-lg rounded-lg p-6 text-center md:w-[500px] md:h-[500px] flex flex-col justify-center items-center my-12"
-                  >
-                    <h3 className="text-xl">{flashcards[index].question}</h3>
-                    <p className="text-lg">{flashcards[index].answer}</p>
-                  </div>
-                ))}
-              </div>{" "}
+                {wrongQuestions.map((index, i) => {
+                  const card = quizCardsSnapshot[index];
+                  if (!card) return null;
+                  return (
+                    <div
+                      key={`${card.id}-${i}`}
+                      className="carousel-item bg-gray-100 shadow-lg rounded-lg p-6 text-center md:w-[500px] md:h-[500px] flex flex-col justify-center items-center my-12"
+                    >
+                      <h3 className="text-xl">{card.question}</h3>
+                      <p className="text-lg">{card.answer}</p>
+                    </div>
+                  );
+                })}
+              </div>
             </>
           ) : (
             <h2 className="text-2xl font-bold mb-4">100%</h2>
           )}
         </div>
-      </>
+      </div>
     );
   }
 
