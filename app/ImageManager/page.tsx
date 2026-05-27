@@ -5,9 +5,16 @@ import { initDB, storeImage, getImage, listAllImages } from "@/utils/db";
 import { IDBPDatabase } from "idb";
 import Image from "next/image";
 
+type StoredImage = {
+  id: number;
+  timestamp: Date;
+  size: number;
+  type: string;
+};
+
 export default function TestDB() {
   const [db, setDb] = useState<IDBPDatabase | null>(null);
-  const [images, setImages] = useState<any[]>([]);
+  const [images, setImages] = useState<StoredImage[]>([]);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   useEffect(() => {

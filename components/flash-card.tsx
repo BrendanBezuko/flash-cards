@@ -1,4 +1,4 @@
-("use client");
+"use client";
 
 import { useState } from "react";
 import { Check, X } from "lucide-react";
@@ -11,7 +11,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Flashcard } from "@/types/flash-card";
 import Image from "next/image";
 
 interface FlashcardProps {
@@ -19,8 +18,6 @@ interface FlashcardProps {
   answer: string;
   questionImage?: string;
   answerImage?: string;
-  reverse: boolean;
-  type: boolean;
   onAnswerCheck: (isCorrect: boolean) => void; // New prop for callback
 }
 
@@ -29,8 +26,6 @@ export default function FlashCard({
   answer,
   questionImage,
   answerImage,
-  reverse,
-  type,
   onAnswerCheck, // Destructure the new prop
 }: FlashcardProps) {
   const [isAnswerVisible, setIsAnswerVisible] = useState(false);
