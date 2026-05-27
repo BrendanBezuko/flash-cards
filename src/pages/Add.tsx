@@ -1,5 +1,3 @@
-"use client";
-
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   initDB,
@@ -21,7 +19,6 @@ import {
   isDuplicateFlashcard,
 } from "@/utils/flashcard-duplicates";
 import { IDBPDatabase } from "idb";
-import Image from "next/image";
 
 const DEFAULT_DECK_NAME = "Default";
 
@@ -321,22 +318,18 @@ export default function Add() {
       <div className="bg-gray-100 shadow-lg rounded-lg p-6 text-center md:w-min-[500px] md:h-min-[500px] flex flex-col justify-center items-center my-12">
         <h2 className="text-2xl font-bold mb-2">{question}</h2>
         {qImage && (
-          <Image
+          <img
             src={URL.createObjectURL(qImage)}
-            alt="Question Image"
-            className="mt-4"
-            width={300}
-            height={300}
+            alt="Question"
+            className="mt-4 max-w-[300px] h-auto"
           />
         )}
         <p className="text-xl">{answer}</p>
         {aImage && (
-          <Image
+          <img
             src={URL.createObjectURL(aImage)}
-            alt="Answer Image"
-            className="mt-4 rounded"
-            width={300}
-            height={300}
+            alt="Answer"
+            className="mt-4 rounded max-w-[300px] h-auto"
           />
         )}
       </div>

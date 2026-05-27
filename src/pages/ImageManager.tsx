@@ -1,9 +1,6 @@
-"use client";
-
 import { useEffect, useState } from "react";
 import { initDB, storeImage, getImage, listAllImages } from "@/utils/db";
 import { IDBPDatabase } from "idb";
-import Image from "next/image";
 
 type StoredImage = {
   id: number;
@@ -12,7 +9,7 @@ type StoredImage = {
   type: string;
 };
 
-export default function TestDB() {
+export default function ImageManager() {
   const [db, setDb] = useState<IDBPDatabase | null>(null);
   const [images, setImages] = useState<StoredImage[]>([]);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -22,7 +19,6 @@ export default function TestDB() {
       const database = await initDB();
       if (database) {
         setDb(database);
-        // Load existing images
         const allImages = await listAllImages(database);
         setImages(allImages);
       }
@@ -37,7 +33,6 @@ export default function TestDB() {
     const imageId = await storeImage(db, file);
 
     if (imageId) {
-      // Refresh the list of images
       const allImages = await listAllImages(db);
       setImages(allImages);
     }
@@ -49,7 +44,6 @@ export default function TestDB() {
     try {
       const imageBlob = await getImage(db, id);
       if (imageBlob instanceof Blob) {
-        // Make sure we have a valid Blob
         const imageUrl = URL.createObjectURL(imageBlob);
         setSelectedImage(imageUrl);
       } else {
@@ -64,7 +58,6 @@ export default function TestDB() {
     <div className="p-4">
       <h1 className="text-2xl font-bold mb-4">IndexedDB Image Test</h1>
 
-      {/* Upload Section */}
       <div className="mb-6">
         <input
           type="file"
@@ -74,7 +67,6 @@ export default function TestDB() {
         />
       </div>
 
-      {/* Images List */}
       <div className="mb-6">
         <h2 className="text-xl font-semibold mb-2">Stored Images:</h2>
         <div className="space-y-2">
@@ -94,20 +86,16 @@ export default function TestDB() {
         </div>
       </div>
 
-      {/* Image Preview */}
       {selectedImage && (
         <div className="mt-4">
           <h2 className="text-xl font-semibold mb-2">Preview:</h2>
-          <Image
+          <img
             src={selectedImage}
             alt="Preview"
             className="max-w-md border"
             onLoad={() => {
-              // Clean up the object URL after the image loads
               URL.revokeObjectURL(selectedImage);
             }}
-            width={300}
-            height={300}
           />
         </div>
       )}

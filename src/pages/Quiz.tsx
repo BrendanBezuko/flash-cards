@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect, useState } from "react";
 import { Flashcard } from "@/types/flash-card";
 import {
@@ -10,11 +8,10 @@ import {
   listAllDecks,
 } from "@/utils/db";
 import { Deck } from "@/types/deck";
-import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { IDBPDatabase } from "idb";
 
-export default function Test() {
+export default function Quiz() {
   const [flashcards, setFlashcards] = useState<Flashcard[]>([]);
   const [deckSize, setDeckSize] = useState<number>(0);
   const [currentIndex, setCurrentIndex] = useState<number>(0);
@@ -22,10 +19,9 @@ export default function Test() {
   const [score, setScore] = useState<number>(0);
   const [wrongQuestions, setWrongQuestions] = useState<number[]>([]);
   const [isQuizStarted, setIsQuizStarted] = useState<boolean>(false);
-  //const [db, setDb] = useState<any>(null);
   const [isQuizEnded, setIsQuizEnded] = useState(false);
   const [shuffle, setShuffle] = useState(false);
-  const [pedantic, setPedantic] = useState(false); // pedantic or typed responses mode
+  const [pedantic, setPedantic] = useState(false);
   const [images, setImages] = useState<{
     [key: number]: Blob | undefined | null;
   }>({});
@@ -86,7 +82,7 @@ export default function Test() {
     const cardsToUse = shuffle
       ? shuffleArray([...flashcards])
       : orderById([...flashcards]);
-    setFlashcards(cardsToUse.slice(0, deckSize)); // Update to set flashcards to a subarray
+    setFlashcards(cardsToUse.slice(0, deckSize));
     setIsQuizEnded(false);
     setIsQuizStarted(true);
     setScore(0);
@@ -105,19 +101,12 @@ export default function Test() {
     }
     setShowAnswer(false);
 
-    // Check if the game has ended and cycle through wrong questions
     if (currentIndex + 1 >= flashcards.length && isCorrect) {
       setIsQuizEnded(true);
     } else {
       setCurrentIndex((prev) => prev + 1);
     }
   };
-
-  // const handleShowAnswer = () => {
-  //   if (!showAnswer) {
-  //     setShowAnswer(true);
-  //   }
-  // };
 
   const shuffleArray = (array: Flashcard[]) => {
     for (let i = array.length - 1; i > 0; i--) {
@@ -128,7 +117,7 @@ export default function Test() {
   };
 
   const orderById = (array: Flashcard[]) => {
-    return array.sort((a, b) => a.id - b.id); // Sort flashcards by id
+    return array.sort((a, b) => a.id - b.id);
   };
 
   if (!isQuizStarted) {
@@ -258,12 +247,10 @@ export default function Test() {
             </h2>
             {currentFlashcard.qImage &&
               images[currentFlashcard.id] instanceof Blob && (
-                <Image
+                <img
                   src={URL.createObjectURL(images[currentFlashcard.id] as Blob)}
                   alt={currentFlashcard.question}
-                  className="mb-4 rounded"
-                  width={300}
-                  height={300}
+                  className="mb-4 rounded max-w-[300px] h-auto mx-auto"
                 />
               )}
 

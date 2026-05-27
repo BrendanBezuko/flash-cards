@@ -1,5 +1,3 @@
-"use client";
-
 import { useState } from "react";
 import { Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,7 +9,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import Image from "next/image";
 
 interface FlashcardProps {
   question: string;
@@ -41,12 +38,10 @@ export default function FlashCard({
       <CardContent className="space-y-4">
         {questionImage && (
           <div className="relative aspect-video rounded-lg overflow-hidden">
-            <Image
+            <img
               src={questionImage}
               alt={question}
-              className="mb-4 rounded"
-              width={300}
-              height={300}
+              className="mb-4 rounded max-w-[300px] h-auto"
             />
           </div>
         )}
@@ -65,12 +60,10 @@ export default function FlashCard({
               <p className="text-lg">{answer}</p>
               {answerImage && (
                 <div className="relative aspect-video rounded-lg overflow-hidden">
-                  <Image
+                  <img
                     src={answerImage}
                     alt={answer}
-                    className="mb-4 rounded"
-                    width={300}
-                    height={300}
+                    className="mb-4 rounded max-w-[300px] h-auto"
                   />
                 </div>
               )}

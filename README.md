@@ -18,10 +18,16 @@ A simple flash card application that runs locally without a backend using indexe
 
 ## Getting Started
 
-Run the development server:
+Install dependencies, then run the dev server:
 
 ```bash
+npm install
 npm run dev
-# or
-pnpm dev
+```
+
+Build for production (static output in `dist/` for GitHub Pages):
+
+```bash
+npm run build
+npm run preview
 ```
